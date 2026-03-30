@@ -2,78 +2,67 @@
 let categoryChart = null;
 let balanceChart = null;
 let isSyncing = false;
+let currentCurrency = 'ARS';
+let editingId = null;
 
 let currentData = {
     transactions: JSON.parse(localStorage.getItem('hogar_v1_data')) || [],
-    cloudUrl: localStorage.getItem('hogar_v1_cloud_url') || 'https://script.google.com/macros/s/AKfycbysnI2gWZe-Z1Kd7Aj1s6aGLrfvdmhCjunT2WUJyTAhjboh8VdDt031pjuhdAHU32CY/exec'
+    cloudUrl: localStorage.getItem('hogar_v1_cloud_url') || 'https://script.google.com/macros/s/AKfycbxnUr7xSJTQd8ZAngmH44o-vH54tUdS-lnTNVb3J9sO140AcJhwVi5qPP-mTwupnQFL/exec'
 };
 
 // ─── INIT ──────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons();
     setupEventListeners();
-    
-    // Fecha por defecto en el modal (hoy)
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('fecha-tx').value = today;
-    
     updateUI();
-    document.getElementById('current-date').textContent =
-        new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-    if (currentData.cloudUrl) {
-        fetchCloudData();
-    }
+    document.getElementById('current-date').textContent = new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    if (currentData.cloudUrl) fetchCloudData();
 });
+
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById(`tab-${tabId}`).classList.add('active');
+    const btn = [...document.querySelectorAll('.nav-item')].find(b => b.onclick.toString().includes(tabId));
+    if(btn) btn.classList.add('active');
+    updateUI();
+}
 
 function fetchCloudData() {
     if (isSyncing || !currentData.cloudUrl) return;
     isSyncing = true;
     const syncBtn = document.getElementById('sync-btn');
     const originalText = syncBtn.innerHTML;
-    syncBtn.innerHTML = '<i data-lucide="refresh-cw" class="spin"></i> ...';
+    syncBtn.innerHTML = '<i data-lucide="refresh-cw" class="spin"></i>';
     lucide.createIcons();
 
-    fetch(currentData.cloudUrl)
+    fetch(currentData.cloudUrl.trim())
         .then(res => res.json())
         .then(data => {
             if (Array.isArray(data)) {
-                // Sobrescribir lo local con lo de la planilla para unificar
                 currentData.transactions = data.map(t => {
-                    // Normalización local ultra-segura
-                    const keys = Object.keys(t).reduce((acc, k) => {
-                        const cleanK = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                        acc[cleanK] = t[k];
+                    const k = Object.keys(t).reduce((acc, c) => {
+                        acc[c.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")] = t[c];
                         return acc;
                     }, {});
-
-                    const type = (keys.tipo || keys.type || 'gasto').toLowerCase();
-                    const monto = parseFloat(keys.monto || 0);
-                    const categoria = keys.categoria || keys.category || 'Varios';
-                    const detalle = keys.detalle || keys.detail || '';
-                    const responsable = keys.responsable || keys.user || 'Casa';
-                    const fechaRaw = keys.fecha || keys.date || new Date().toISOString();
-                    
                     return {
-                        id: Math.random(), // Generamos nuevos IDs temporales
-                        type: type,
-                        monto: monto,
-                        categoria: categoria,
-                        detalle: detalle,
-                        responsable: responsable,
-                        fecha: typeof fechaRaw === 'object' ? new Date(fechaRaw).toISOString().split('T')[0] : (typeof fechaRaw === 'string' ? fechaRaw.split('T')[0] : new Date().toISOString().split('T')[0])
+                        id: k.id || Math.random(),
+                        type: (k.tipo || k.type || 'gasto').toLowerCase(),
+                        monto: parseFloat(k.monto || 0),
+                        categoria: k.categoria || k.category || 'Varios',
+                        detalle: k.detalle || k.detail || '',
+                        responsable: k.responsable || 'Casa',
+                        fecha: k.fecha ? (typeof k.fecha === 'string' ? k.fecha.split('T')[0] : new Date(k.fecha).toISOString().split('T')[0]) : new Date().toISOString().split('T')[0]
                     };
                 });
-                
                 localStorage.setItem('hogar_v1_data', JSON.stringify(currentData.transactions));
                 updateUI();
-                showToast('¡Datos sincronizados!');
+                showToast('¡Datos actualizados!');
             }
         })
-        .catch(e => {
-            console.error(e);
-            showToast('⚠️ Error: Revisa tu URL de la Nube');
-        })
+        .catch(() => showToast('⚠️ Error de conexión'))
         .finally(() => {
             isSyncing = false;
             syncBtn.innerHTML = originalText;
@@ -89,53 +78,29 @@ function showToast(msg) {
 }
 
 function setupEventListeners() {
-    document.getElementById('add-transaction-btn').onclick = () =>
+    document.getElementById('add-transaction-btn').onclick = () => {
+        editingId = null;
+        document.getElementById('transaction-form').reset();
+        document.querySelector('.modal-header h3').textContent = 'NUEVO MOVIMIENTO';
         document.getElementById('modal-overlay').classList.remove('hidden');
-    document.getElementById('close-modal').onclick = () =>
-        document.getElementById('modal-overlay').classList.add('hidden');
-
-    document.getElementById('sync-btn').onclick = async () => {
-        if (currentData.cloudUrl) {
-            await fetchCloudData();
-        } else {
-            document.getElementById('cloud-url').value = currentData.cloudUrl;
-            document.getElementById('sync-modal').classList.remove('hidden');
-        }
     };
-    
-    document.getElementById('close-sync-modal').onclick = () =>
-        document.getElementById('sync-modal').classList.add('hidden');
+    document.getElementById('close-modal').onclick = () => document.getElementById('modal-overlay').classList.add('hidden');
+    document.getElementById('sync-btn').onclick = () => fetchCloudData();
+    document.getElementById('close-sync-modal').onclick = () => document.getElementById('sync-modal').classList.add('hidden');
 
-    document.getElementById('save-sync').onclick = async () => {
-        let url = document.getElementById('cloud-url').value.trim();
-        
-        // Validación: Si el usuario pega la URL de la planilla en vez de la del script
-        if (url.includes('docs.google.com/spreadsheets')) {
-            alert('¡Atención! Has copiado la planilla, no el Script. Debes seguir los pasos de la guía para obtener la URL que termina en "/exec".');
-            return;
-        }
-
-        if (url && !url.includes('/macros/s/')) {
-            alert('URL inválida. La URL debe ser la del Google Apps Script (termina en /exec)');
-            return;
-        }
-
+    document.getElementById('save-sync').onclick = () => {
+        const url = document.getElementById('cloud-url').value.trim();
+        if (url.includes('docs.google.com/spreadsheets')) return alert('Usa la URL del Script (/exec)');
         currentData.cloudUrl = url;
         localStorage.setItem('hogar_v1_cloud_url', url);
         document.getElementById('sync-modal').classList.add('hidden');
-        showToast('Conectando...');
-        if (url) await fetchCloudData();
-        updateUI();
+        fetchCloudData();
     };
 
-    document.getElementById('transaction-form').onsubmit = async (e) => {
+    document.getElementById('transaction-form').onsubmit = (e) => {
         e.preventDefault();
-        const submitBtn = e.target.querySelector('button[type="submit"]');
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'GUARDANDO...';
-
         const tx = {
-            id: Date.now(),
+            id: editingId || Date.now(),
             type: document.querySelector('input[name="type"]:checked').value,
             monto: parseFloat(document.getElementById('monto').value),
             categoria: document.getElementById('categoria').value,
@@ -143,18 +108,8 @@ function setupEventListeners() {
             responsable: document.getElementById('responsable').value || 'Casa',
             fecha: document.getElementById('fecha-tx').value
         };
-
-        try {
-            await saveTransaction(tx);
-            e.target.reset();
-            document.getElementById('fecha-tx').value = new Date().toISOString().split('T')[0];
-            document.getElementById('modal-overlay').classList.add('hidden');
-        } catch (err) {
-            alert('Error al guardar el movimiento.');
-        } finally {
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'GUARDAR';
-        }
+        saveTransaction(tx);
+        document.getElementById('modal-overlay').classList.add('hidden');
     };
 
     document.getElementById('table-search').oninput = updateTable;
@@ -162,26 +117,17 @@ function setupEventListeners() {
 }
 
 async function saveTransaction(tx) {
-    // Guardar localmente primero para UX rápida
-    currentData.transactions.push(tx);
+    if (editingId) {
+        currentData.transactions = currentData.transactions.map(t => t.id === editingId ? tx : t);
+    } else {
+        currentData.transactions.push(tx);
+    }
     localStorage.setItem('hogar_v1_data', JSON.stringify(currentData.transactions));
     updateUI();
 
-    // Intentar subir a la nube
     if (currentData.cloudUrl) {
-        try {
-            // Usamos POST con formato que Google Apps Script digiere bien
-            await fetch(currentData.cloudUrl, {
-                method: 'POST',
-                mode: 'no-cors', // Mantenemos no-cors por facilidad con GAS, pero alertamos si falla el fetch inicial
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(tx)
-            });
-            // Refrescamos después de un breve delay para asegurar que el server procesó
-            setTimeout(fetchCloudData, 1500);
-        } catch (e) {
-            console.warn('Error subiendo a la nube, quedó guardado localmente.', e);
-        }
+        fetch(currentData.cloudUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(tx) });
+        setTimeout(fetchCloudData, 2000);
     }
 }
 
@@ -190,98 +136,105 @@ function updateUI() {
     updateTable();
     renderCharts();
     renderBudget();
+    renderFixedExpenses();
+    renderSavings();
 }
 
 function renderTotals() {
-    const data = currentData.transactions;
-    const now = new Date();
-    const currentMonthData = data.filter(t => {
-        const d = new Date(t.fecha);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    });
-
-    const income = currentMonthData.filter(t => t.type === 'ingreso').reduce((s,t) => s + t.monto, 0);
-    const expenses = currentMonthData.filter(t => t.type === 'gasto').reduce((s,t) => s + t.monto, 0);
-
-    // Balance total histórico
-    const totalInc = data.filter(t => t.type === 'ingreso').reduce((s,t) => s + t.monto, 0);
-    const totalExp = data.filter(t => t.type === 'gasto').reduce((s,t) => s + t.monto, 0);
-
-    document.getElementById('total-balance').textContent = `$ ${Math.round(totalInc - totalExp).toLocaleString('es-AR')}`;
-    document.getElementById('total-income').textContent = `$ ${Math.round(income).toLocaleString('es-AR')}`;
-    document.getElementById('total-expenses').textContent = `$ ${Math.round(expenses).toLocaleString('es-AR')}`;
-    
-    const rate = income > 0 ? Math.round(((income - expenses) / income) * 100) : 0;
-    document.getElementById('savings-rate').textContent = `${rate}%`;
-}
-
-function renderBudget() {
     const data = currentData.transactions;
     const now = new Date();
     const currentMonth = data.filter(t => {
         const d = new Date(t.fecha);
         return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
     });
-
-    const income = currentMonth.filter(t => t.type === 'ingreso').reduce((s,t) => s + t.monto, 0);
+    const income = currentMonth.filter(t => t.type === 'ingreso' && !t.categoria.includes('Ahorro')).reduce((s,t) => s + t.monto, 0);
     const expenses = currentMonth.filter(t => t.type === 'gasto').reduce((s,t) => s + t.monto, 0);
+    const totalInc = data.filter(t => t.type === 'ingreso').reduce((s,t) => s + t.monto, 0);
+    const totalExp = data.filter(t => t.type === 'gasto').reduce((s,t) => s + t.monto, 0);
 
-    const percent = income > 0 ? (expenses / income) * 100 : 0;
-    const bar = document.getElementById('budget-progress');
-    bar.style.width = `${Math.min(percent, 100)}%`;
+    document.getElementById('total-balance').textContent = `$ ${Math.round(totalInc - totalExp).toLocaleString('es-AR')}`;
+    const rate = income > 0 ? Math.round(((income - expenses) / income) * 100) : 0;
+    document.getElementById('savings-rate').textContent = `${rate}%`;
+}
+
+function renderFixedExpenses() {
+    const list = document.getElementById('fixed-expenses-list');
+    const fixed = currentData.transactions.filter(t => t.categoria.includes('Alquiler') || t.categoria.includes('Servicios'));
+    list.innerHTML = fixed.length ? '' : '<p style="color:var(--text-dim); font-size:0.8rem;">No hay gastos fijos detectados.</p>';
     
-    if (percent > 90) bar.style.background = '#ef4444';
-    else if (percent > 70) bar.style.background = '#f59e0b';
-    else bar.style.background = 'linear-gradient(90deg, #6366f1, #a855f7)';
+    const uniqueFixed = Array.from(new Set(fixed.map(t => t.categoria)));
+    uniqueFixed.forEach(cat => {
+        const last = fixed.filter(t => t.categoria === cat).sort((a,b) => new Date(b.fecha) - new Date(a.fecha))[0];
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.style.padding = '1rem';
+        div.style.background = 'rgba(255,255,255,0.02)';
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div><h4 style="font-size:0.8rem;">${cat}</h4><small style="color:var(--text-dim)">Último: ${last.fecha}</small></div>
+                <div style="font-weight:700;">$ ${last.monto.toLocaleString('es-AR')}</div>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+}
 
-    document.getElementById('budget-info').textContent = 
-        income > 0 ? `Gastado: ${percent.toFixed(1)}% de tus ingresos mes` : 'Sin ingresos este mes';
+function setCurrency(curr) {
+    currentCurrency = curr;
+    document.querySelectorAll('.currency-btn').forEach(b => b.classList.toggle('active', b.textContent === curr));
+    renderSavings();
+}
+
+function renderSavings() {
+    const data = currentData.transactions;
+    const ars = data.filter(t => t.categoria.includes('Sueldo') || t.categoria === 'Ahorro ARS').reduce((s,t) => s + (t.type === 'ingreso' ? t.monto : -t.monto), 0);
+    const usd = data.filter(t => t.categoria === 'Ahorro USD').reduce((s,t) => s + (t.type === 'ingreso' ? t.monto : -t.monto), 0);
+
+    document.getElementById('savings-ars').textContent = `$ ${Math.round(ars).toLocaleString('es-AR')}`;
+    document.getElementById('savings-usd').textContent = `u$s ${Math.round(usd).toLocaleString('es-AR')}`;
+    document.getElementById('savings-display').textContent = currentCurrency === 'ARS' ? `$ ${Math.round(ars).toLocaleString('es-AR')}` : `u$s ${Math.round(usd).toLocaleString('es-AR')}`;
 }
 
 function updateTable() {
     const search = document.getElementById('table-search').value.toLowerCase();
     const typeFilter = document.getElementById('filter-type').value;
-
     const filtered = currentData.transactions.filter(t => {
         const match = (t.detalle || '').toLowerCase().includes(search) || (t.categoria || '').toLowerCase().includes(search);
-        const typeOk = typeFilter === 'all' || t.type === typeFilter;
-        return match && typeOk;
+        return match && (typeFilter === 'all' || t.type === typeFilter);
     });
-
     const tbody = document.getElementById('transactions-body');
-    tbody.innerHTML = filtered.length ? '' : '<tr><td colspan="7" style="text-align:center;padding:2rem;">Sin datos.</td></tr>';
-
+    tbody.innerHTML = '';
     [...filtered].sort((a,b) => new Date(b.fecha) - new Date(a.fecha)).forEach(t => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${t.fecha}</td>
-            <td style="font-weight:700;">${t.categoria}</td>
+            <td>${t.fecha.split('-').slice(1).reverse().join('/')}</td>
+            <td style="font-weight:700;">${t.categoria.substring(0,8)}..</td>
             <td>${t.detalle}</td>
-            <td>${t.responsable}</td>
-            <td class="text-right ${t.type === 'ingreso' ? 'income-text' : 'expense-text'}">
-                $ ${Math.round(t.monto).toLocaleString('es-AR')}
-            </td>
-            <td><span class="status-tag">${t.type.toUpperCase()}</span></td>
-            <td class="text-right"><button onclick="deleteTx(${t.id})" style="opacity:0.2;background:none;border:none;cursor:pointer;color:white;"><i data-lucide="trash-2" style="width:14px;"></i></button></td>
+            <td class="text-right ${t.type === 'ingreso' ? 'income-text' : 'expense-text'}">$${Math.round(t.monto).toLocaleString('es-AR')}</td>
+            <td><button onclick="editTx(${t.id})" style="background:none; border:none; color:var(--text-dim);"><i data-lucide="edit-2" style="width:14px;"></i></button></td>
         `;
         tbody.appendChild(tr);
     });
     lucide.createIcons();
 }
 
-function deleteTx(id) {
-    if (confirm('¿Eliminar?')) {
-        currentData.transactions = currentData.transactions.filter(t => t.id !== id);
-        localStorage.setItem('hogar_v1_data', JSON.stringify(currentData.transactions));
-        updateUI();
-    }
+function editTx(id) {
+    const tx = currentData.transactions.find(t => t.id === id);
+    if (!tx) return;
+    editingId = id;
+    document.getElementById('monto').value = tx.monto;
+    document.getElementById('categoria').value = tx.categoria;
+    document.getElementById('detalle').value = tx.detalle;
+    document.getElementById('fecha-tx').value = tx.fecha;
+    document.getElementById('responsable').value = tx.responsable;
+    document.getElementById(`type-${tx.type}`).checked = true;
+    document.querySelector('.modal-header h3').textContent = 'EDITAR MOVIMIENTO';
+    document.getElementById('modal-overlay').classList.remove('hidden');
 }
 
 function renderCharts() {
     if (categoryChart) categoryChart.destroy();
     if (balanceChart) balanceChart.destroy();
-
-    // DONA
     const ctxD = document.getElementById('categoryChart').getContext('2d');
     const expensesOnly = currentData.transactions.filter(t => t.type === 'gasto');
     const cats = {};
@@ -290,24 +243,18 @@ function renderCharts() {
     categoryChart = new Chart(ctxD, {
         type: 'doughnut',
         data: {
-            labels: Object.keys(cats).length ? Object.keys(cats) : ['Sin gastos'],
-            datasets: [{
-                data: Object.keys(cats).length ? Object.values(cats) : [1],
-                backgroundColor: ['#6366f1','#10b981','#ef4444','#f59e0b','#ec4899','#8b5cf6'],
-                borderWidth: 0
-            }]
+            labels: Object.keys(cats),
+            datasets: [{ data: Object.values(cats), backgroundColor: ['#6366f1','#10b981','#ef4444','#f59e0b','#ec4899','#8b5cf6'], borderWidth: 0 }]
         },
         options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false } } }
     });
 
-    // BARRAS EVOLUCIÓN
     const ctxB = document.getElementById('balanceChart').getContext('2d');
     const labels = [];
     const incomes = [];
     const exps = [];
     const now = new Date();
-
-    for(let i=5; i>=0; i--) {
+    for(let i=3; i>=0; i--) {
         const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
         labels.push(d.toLocaleString('es-AR', {month: 'short'}).toUpperCase());
         const monthly = currentData.transactions.filter(t => {
@@ -317,23 +264,25 @@ function renderCharts() {
         incomes.push(monthly.filter(t => t.type === 'ingreso').reduce((s,t) => s + t.monto, 0));
         exps.push(monthly.filter(t => t.type === 'gasto').reduce((s,t) => s + t.monto, 0));
     }
-
     balanceChart = new Chart(ctxB, {
         type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [
-                { label: 'INGRESOS', data: incomes, backgroundColor: '#10b981', borderRadius: 4 },
-                { label: 'GASTOS', data: exps, backgroundColor: '#ef4444', borderRadius: 4 }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: { y: { beginAtZero: true, ticks: { font: { size: 9 } } }, x: { ticks: { font: { size: 9 } } } },
-            plugins: { legend: { display: false } }
-        }
+        data: { labels: labels, datasets: [{ label: 'INC', data: incomes, backgroundColor: '#10b981', borderRadius: 4 }, { label: 'EXP', data: exps, backgroundColor: '#ef4444', borderRadius: 4 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false }, x: { ticks: { font: { size: 9 } } } } }
     });
+}
+
+function renderBudget() {
+    const data = currentData.transactions;
+    const now = new Date();
+    const currentMonth = data.filter(t => {
+        const d = new Date(t.fecha);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    const income = currentMonth.filter(t => t.type === 'ingreso').reduce((s,t) => s + t.monto, 0);
+    const expenses = currentMonth.filter(t => t.type === 'gasto').reduce((s,t) => s + t.monto, 0);
+    const percent = income > 0 ? (expenses / income) * 100 : 0;
+    const bar = document.getElementById('budget-progress');
+    if(bar) bar.style.width = `${Math.min(percent, 100)}%`;
 }
 
 function exportToCSV() {

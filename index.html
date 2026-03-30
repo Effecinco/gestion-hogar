@@ -31,78 +31,100 @@
         </header>
 
         <main>
-            <div class="summary-grid">
-                <div class="card balance-card">
-                    <div class="card-label">BALANCE ACTUAL</div>
-                    <div id="total-balance" class="card-value">$ 0</div>
-                    <div class="card-footer"><span class="trend-up" id="savings-rate">0%</span> ahorro vs ingresos</div>
-                </div>
-                <div class="card">
-                    <div class="card-label">INGRESOS MES</div>
-                    <div id="total-income" class="card-value income-text">$ 0</div>
-                    <i data-lucide="trending-up" class="card-icon"></i>
-                </div>
-                <div class="card">
-                    <div class="card-label">GASTOS MES</div>
-                    <div id="total-expenses" class="card-value expense-text">$ 0</div>
-                    <i data-lucide="trending-down" class="card-icon"></i>
-                </div>
-            </div>
-
-            <div class="content-grid" style="grid-template-columns: 1fr 1fr;">
-                <div class="card chart-container-fixed">
-                    <div class="card-header"><h2>EVOLUCIÓN MENSUAL</h2></div>
-                    <div style="height: 250px; width: 100%;"><canvas id="balanceChart"></canvas></div>
-                </div>
-                <div class="card chart-container-fixed">
-                    <div class="card-header"><h2>DISTRIBUCIÓN DE GASTOS</h2></div>
-                    <div style="height: 250px; width: 100%;"><canvas id="categoryChart"></canvas></div>
-                </div>
-            </div>
-
-            <div class="card budget-card">
-                <div class="budget-header">
-                    <h3>PRESUPUESTO DEL MES (AHORRO)</h3>
-                    <span id="budget-info">Calculando...</span>
-                </div>
-                <div class="progress-bar-container">
-                    <div id="budget-progress" class="progress-bar"></div>
-                </div>
-            </div>
-
-            <div class="card table-card">
-                <div class="table-header">
-                    <h2>MOVIMIENTOS</h2>
-                    <div class="table-filters">
-                        <div class="search-box">
-                            <i data-lucide="search"></i>
-                            <input type="text" id="table-search" placeholder="Buscar...">
-                        </div>
-                        <select id="filter-type" class="filter-select">
-                            <option value="all">Todos</option>
-                            <option value="ingreso">Ingresos</option>
-                            <option value="gasto">Gastos</option>
-                        </select>
+            <!-- SECCIÓN RESUMEN -->
+            <section id="tab-home" class="tab-content active">
+                <div class="summary-grid">
+                    <div class="card balance-card">
+                        <div class="card-label">BALANCE ACTUAL</div>
+                        <div id="total-balance" class="card-value">$ 0</div>
+                        <div class="card-footer"><span class="trend-up" id="savings-rate">0%</span> ahorro vs ingresos</div>
                     </div>
                 </div>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>FECHA</th>
-                                <th>CATEGORÍA</th>
-                                <th>DETALLE</th>
-                                <th>RESPONSABLE</th>
-                                <th class="text-right">MONTO</th>
-                                <th>TIPO</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody id="transactions-body"></tbody>
-                    </table>
+
+                <div class="content-grid" style="grid-template-columns: 1fr 1fr;">
+                    <div class="card chart-container-fixed">
+                        <div class="card-header"><h2>EVOLUCIÓN MENSUAL</h2></div>
+                        <div style="height: 250px; width: 100%;"><canvas id="balanceChart"></canvas></div>
+                    </div>
+                    <div class="card chart-container-fixed">
+                        <div class="card-header"><h2>DISTRIBUCIÓN</h2></div>
+                        <div style="height: 250px; width: 100%;"><canvas id="categoryChart"></canvas></div>
+                    </div>
                 </div>
-            </div>
+
+                <div class="card budget-card">
+                    <div class="budget-header">
+                        <h3>PRESUPUESTO DEL MES</h3>
+                        <span id="budget-info">Calculando...</span>
+                    </div>
+                    <div class="progress-bar-container"><div id="budget-progress" class="progress-bar"></div></div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN GASTOS FIJOS -->
+            <section id="tab-fixed" class="tab-content">
+                <div class="card">
+                    <div class="card-header"><h2>GASTOS FIJOS MENSUALES</h2></div>
+                    <div id="fixed-expenses-list" style="display: flex; flex-direction: column; gap: 0.8rem;">
+                        <!-- Dinámico -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN AHORROS -->
+            <section id="tab-savings" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>AHORROS ACUMULADOS</h2>
+                        <div class="currency-toggle">
+                            <button class="currency-btn active" onclick="setCurrency('ARS')">ARS</button>
+                            <button class="currency-btn" onclick="setCurrency('USD')">USD</button>
+                        </div>
+                    </div>
+                    <div id="savings-display" class="card-value income-text">$ 0</div>
+                    <div class="savings-grid">
+                        <div class="card savings-card">
+                            <div class="card-label">TOTAL PESOS</div>
+                            <div id="savings-ars" class="price-cell">$ 0</div>
+                        </div>
+                        <div class="card savings-card">
+                            <div class="card-label">TOTAL DÓLARES</div>
+                            <div id="savings-usd" class="price-cell">u$s 0</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECCIÓN HISTORIAL (Antes era la tabla principal) -->
+            <section id="tab-history" class="tab-content">
+                <div class="card table-card" style="background: var(--card-bg);">
+                    <div class="table-header">
+                        <h2>HISTORIAL</h2>
+                        <div class="table-filters">
+                            <input type="text" id="table-search" placeholder="Buscar..." class="filter-select" style="width: 120px;">
+                            <select id="filter-type" class="filter-select">
+                                <option value="all">Todo</option>
+                                <option value="gasto">Gastos</option>
+                                <option value="ingreso">Ingresos</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead><tr><th>FECHA</th><th>CAT.</th><th>DETALLE</th><th class="text-right">MONTO</th><th></th></tr></thead>
+                            <tbody id="transactions-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </main>
+
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="switchTab('home')"><i data-lucide="home"></i>INICIO</button>
+            <button class="nav-item" onclick="switchTab('fixed')"><i data-lucide="calendar"></i>FIJOS</button>
+            <button class="nav-item" onclick="switchTab('savings')"><i data-lucide="piggy-bank"></i>AHORRO</button>
+            <button class="nav-item" onclick="switchTab('history')"><i data-lucide="list"></i>LISTA</button>
+        </nav>
 
         <div id="modal-overlay" class="modal-overlay hidden">
             <div class="modal">
