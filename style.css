@@ -136,9 +136,31 @@ input, select {
 
 .hidden { display: none !important; }
 
-@media (max-width: 1000px) {
-    .summary-grid, .content-grid { grid-template-columns: 1fr; }
-    #app { padding: 1rem; }
+.toast {
+    position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%);
+    background: #18181b; color: white; padding: 0.8rem 1.5rem; border-radius: 12px;
+    font-size: 0.8rem; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    z-index: 10000; border: 1px solid var(--border); transition: 0.3s;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.spin { animation: spin 1s linear infinite; }
+
+@media (max-width: 800px) {
+    header { flex-direction: column; align-items: stretch; gap: 1rem; margin-bottom: 2rem; }
+    .header-actions { flex-direction: column; gap: 0.8rem; }
+    .header-actions button { width: 100%; border-radius: 1rem; }
+    .logo-container { justify-content: center; margin-bottom: 0.5rem; }
+    
+    .summary-grid { grid-template-columns: 1fr; gap: 1rem; }
+    .content-grid { grid-template-columns: 1fr !important; }
+    .chart-container-fixed { height: 320px; }
+    
+    .card-value { font-size: 1.6rem; }
+    #app { padding: 1rem 0.8rem; }
 }
 
 @media print {

@@ -5,7 +5,7 @@ let isSyncing = false;
 
 let currentData = {
     transactions: JSON.parse(localStorage.getItem('hogar_v1_data')) || [],
-    cloudUrl: localStorage.getItem('hogar_v1_cloud_url') || ''
+    cloudUrl: localStorage.getItem('hogar_v1_cloud_url') || 'https://script.google.com/macros/s/AKfycbysnI2gWZe-Z1Kd7Aj1s6aGLrfvdmhCjunT2WUJyTAhjboh8VdDt031pjuhdAHU32CY/exec'
 };
 
 // ─── INIT ──────────────────────────────────────────────────────
@@ -26,30 +26,66 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-async function fetchCloudData() {
-    if (isSyncing) return;
+function fetchCloudData() {
+    if (isSyncing || !currentData.cloudUrl) return;
     isSyncing = true;
-    try {
-        const res = await fetch(currentData.cloudUrl);
-        const data = await res.json();
-        if (Array.isArray(data)) {
-            currentData.transactions = data.map(t => ({
-                id: t.id || Math.random(),
-                type: t.type || 'gasto',
-                monto: parseFloat(t.monto || 0),
-                categoria: t.categoria || 'Varios',
-                detalle: t.detalle || '',
-                responsable: t.responsable || 'Casa',
-                fecha: t.fecha ? t.fecha.split('T')[0] : new Date().toISOString().split('T')[0]
-            }));
-            localStorage.setItem('hogar_v1_data', JSON.stringify(currentData.transactions));
-            updateUI();
-        }
-    } catch (e) {
-        console.warn('Sin respuesta de la nube.');
-    } finally {
-        isSyncing = false;
-    }
+    const syncBtn = document.getElementById('sync-btn');
+    const originalText = syncBtn.innerHTML;
+    syncBtn.innerHTML = '<i data-lucide="refresh-cw" class="spin"></i> ...';
+    lucide.createIcons();
+
+    fetch(currentData.cloudUrl)
+        .then(res => res.json())
+        .then(data => {
+            if (Array.isArray(data)) {
+                // Sobrescribir lo local con lo de la planilla para unificar
+                currentData.transactions = data.map(t => {
+                    // Normalización local ultra-segura
+                    const keys = Object.keys(t).reduce((acc, k) => {
+                        const cleanK = k.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        acc[cleanK] = t[k];
+                        return acc;
+                    }, {});
+
+                    const type = (keys.tipo || keys.type || 'gasto').toLowerCase();
+                    const monto = parseFloat(keys.monto || 0);
+                    const categoria = keys.categoria || keys.category || 'Varios';
+                    const detalle = keys.detalle || keys.detail || '';
+                    const responsable = keys.responsable || keys.user || 'Casa';
+                    const fechaRaw = keys.fecha || keys.date || new Date().toISOString();
+                    
+                    return {
+                        id: Math.random(), // Generamos nuevos IDs temporales
+                        type: type,
+                        monto: monto,
+                        categoria: categoria,
+                        detalle: detalle,
+                        responsable: responsable,
+                        fecha: typeof fechaRaw === 'object' ? new Date(fechaRaw).toISOString().split('T')[0] : (typeof fechaRaw === 'string' ? fechaRaw.split('T')[0] : new Date().toISOString().split('T')[0])
+                    };
+                });
+                
+                localStorage.setItem('hogar_v1_data', JSON.stringify(currentData.transactions));
+                updateUI();
+                showToast('¡Datos sincronizados!');
+            }
+        })
+        .catch(e => {
+            console.error(e);
+            showToast('⚠️ Error: Revisa tu URL de la Nube');
+        })
+        .finally(() => {
+            isSyncing = false;
+            syncBtn.innerHTML = originalText;
+            lucide.createIcons();
+        });
+}
+
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.remove('hidden');
+    setTimeout(() => t.classList.add('hidden'), 3000);
 }
 
 function setupEventListeners() {
@@ -58,24 +94,46 @@ function setupEventListeners() {
     document.getElementById('close-modal').onclick = () =>
         document.getElementById('modal-overlay').classList.add('hidden');
 
-    document.getElementById('sync-btn').onclick = () => {
-        document.getElementById('cloud-url').value = currentData.cloudUrl;
-        document.getElementById('sync-modal').classList.remove('hidden');
+    document.getElementById('sync-btn').onclick = async () => {
+        if (currentData.cloudUrl) {
+            await fetchCloudData();
+        } else {
+            document.getElementById('cloud-url').value = currentData.cloudUrl;
+            document.getElementById('sync-modal').classList.remove('hidden');
+        }
     };
+    
     document.getElementById('close-sync-modal').onclick = () =>
         document.getElementById('sync-modal').classList.add('hidden');
 
     document.getElementById('save-sync').onclick = async () => {
-        const url = document.getElementById('cloud-url').value.trim();
+        let url = document.getElementById('cloud-url').value.trim();
+        
+        // Validación: Si el usuario pega la URL de la planilla en vez de la del script
+        if (url.includes('docs.google.com/spreadsheets')) {
+            alert('¡Atención! Has copiado la planilla, no el Script. Debes seguir los pasos de la guía para obtener la URL que termina en "/exec".');
+            return;
+        }
+
+        if (url && !url.includes('/macros/s/')) {
+            alert('URL inválida. La URL debe ser la del Google Apps Script (termina en /exec)');
+            return;
+        }
+
         currentData.cloudUrl = url;
         localStorage.setItem('hogar_v1_cloud_url', url);
         document.getElementById('sync-modal').classList.add('hidden');
+        showToast('Conectando...');
         if (url) await fetchCloudData();
         updateUI();
     };
 
-    document.getElementById('transaction-form').onsubmit = (e) => {
+    document.getElementById('transaction-form').onsubmit = async (e) => {
         e.preventDefault();
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'GUARDANDO...';
+
         const tx = {
             id: Date.now(),
             type: document.querySelector('input[name="type"]:checked').value,
@@ -85,23 +143,46 @@ function setupEventListeners() {
             responsable: document.getElementById('responsable').value || 'Casa',
             fecha: document.getElementById('fecha-tx').value
         };
-        saveTransaction(tx);
-        e.target.reset();
-        document.getElementById('fecha-tx').value = new Date().toISOString().split('T')[0];
-        document.getElementById('modal-overlay').classList.add('hidden');
+
+        try {
+            await saveTransaction(tx);
+            e.target.reset();
+            document.getElementById('fecha-tx').value = new Date().toISOString().split('T')[0];
+            document.getElementById('modal-overlay').classList.add('hidden');
+        } catch (err) {
+            alert('Error al guardar el movimiento.');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'GUARDAR';
+        }
     };
 
     document.getElementById('table-search').oninput = updateTable;
     document.getElementById('filter-type').onchange = updateTable;
 }
 
-function saveTransaction(tx) {
+async function saveTransaction(tx) {
+    // Guardar localmente primero para UX rápida
     currentData.transactions.push(tx);
     localStorage.setItem('hogar_v1_data', JSON.stringify(currentData.transactions));
-    if (currentData.cloudUrl) {
-        fetch(currentData.cloudUrl, { method: 'POST', mode: 'no-cors', body: JSON.stringify(tx) });
-    }
     updateUI();
+
+    // Intentar subir a la nube
+    if (currentData.cloudUrl) {
+        try {
+            // Usamos POST con formato que Google Apps Script digiere bien
+            await fetch(currentData.cloudUrl, {
+                method: 'POST',
+                mode: 'no-cors', // Mantenemos no-cors por facilidad con GAS, pero alertamos si falla el fetch inicial
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(tx)
+            });
+            // Refrescamos después de un breve delay para asegurar que el server procesó
+            setTimeout(fetchCloudData, 1500);
+        } catch (e) {
+            console.warn('Error subiendo a la nube, quedó guardado localmente.', e);
+        }
+    }
 }
 
 function updateUI() {
