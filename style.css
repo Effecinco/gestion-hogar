@@ -50,8 +50,18 @@ h1 { font-weight: 800; letter-spacing: -0.05em; font-size: 1.4rem; }
 .trend-up { color: var(--income); font-weight: 700; }
 .card-icon { position: absolute; right: 1.5rem; bottom: 1.5rem; opacity: 0.05; width: 2.5rem; height: 2.5rem; }
 
-.content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
-.chart-container { min-height: 350px; }
+.content-grid { display: grid; gap: 1rem; margin-bottom: 1.5rem; }
+.chart-container-fixed { height: 350px; overflow: hidden; }
+
+/* PRESUPUESTO */
+.budget-card { margin-bottom: 1.5rem; }
+.budget-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+.budget-header h3 { font-size: 0.8rem; letter-spacing: 1px; color: var(--text-dim); }
+
+.progress-bar-container { background: rgba(255,255,255,0.05); height: 12px; border-radius: 6px; overflow: hidden; }
+.progress-bar { background: linear-gradient(90deg, #6366f1, #a855f7); height: 100%; width: 0%; transition: width 1s ease; }
+
+.table-card { border: none; padding: 0; background: transparent; }
 .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .card-header h2 { font-size: 0.85rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; }
 
