@@ -3,10 +3,15 @@ let categoryChart = null;
 let balanceChart = null;
 let isSyncing = false;
 let currentCurrency = 'ARS';
+let currentPeriod = 'month';
 let editingId = null;
 
 let currentData = {
     transactions: JSON.parse(localStorage.getItem('hogar_v1_data')) || [],
+    fixedExpenses: JSON.parse(localStorage.getItem('hogar_v1_fixed')) || [
+        { id: 1, categoria: 'Alquiler/Expensas', detalle: 'Alquiler mensual', monto: 0 },
+        { id: 2, categoria: 'Servicios/Impuestos', detalle: 'Luz/Gas/Agua', monto: 0 }
+    ],
     cloudUrl: localStorage.getItem('hogar_v1_cloud_url') || 'https://script.google.com/macros/s/AKfycbxnUr7xSJTQd8ZAngmH44o-vH54tUdS-lnTNVb3J9sO140AcJhwVi5qPP-mTwupnQFL/exec'
 };
 
@@ -88,6 +93,11 @@ function setupEventListeners() {
     document.getElementById('sync-btn').onclick = () => fetchCloudData();
     document.getElementById('close-sync-modal').onclick = () => document.getElementById('sync-modal').classList.add('hidden');
 
+    document.getElementById('select-period').onchange = (e) => {
+        currentPeriod = e.target.value;
+        updateUI();
+    };
+
     document.getElementById('save-sync').onclick = () => {
         const url = document.getElementById('cloud-url').value.trim();
         if (url.includes('docs.google.com/spreadsheets')) return alert('Usa la URL del Script (/exec)');
@@ -132,29 +142,109 @@ async function saveTransaction(tx) {
 }
 
 function updateUI() {
-    renderTotals();
-    updateTable();
-    renderCharts();
-    renderBudget();
+    const data = filterDataByPeriod(currentData.transactions);
+    renderTotals(data);
+    updateTable(data);
+    renderCharts(data);
+    renderBudget(data);
     renderFixedExpenses();
     renderSavings();
 }
 
-function renderTotals() {
-    const data = currentData.transactions;
+function filterDataByPeriod(allData) {
     const now = new Date();
-    const currentMonth = data.filter(t => {
+    if (currentPeriod === 'history') return allData;
+    
+    return allData.filter(t => {
         const d = new Date(t.fecha);
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        if (currentPeriod === 'month') {
+            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        }
+        if (currentPeriod === 'year') {
+            return d.getFullYear() === now.getFullYear();
+        }
+        return true;
     });
-    const income = currentMonth.filter(t => t.type === 'ingreso' && !t.categoria.includes('Ahorro')).reduce((s,t) => s + t.monto, 0);
-    const expenses = currentMonth.filter(t => t.type === 'gasto').reduce((s,t) => s + t.monto, 0);
-    const totalInc = data.filter(t => t.type === 'ingreso').reduce((s,t) => s + t.monto, 0);
-    const totalExp = data.filter(t => t.type === 'gasto').reduce((s,t) => s + t.monto, 0);
+}
 
-    document.getElementById('total-balance').textContent = `$ ${Math.round(totalInc - totalExp).toLocaleString('es-AR')}`;
+function renderTotals(data) {
+    const income = data.filter(t => t.type === 'ingreso' && !t.categoria.includes('Ahorro')).reduce((s,t) => s + t.monto, 0);
+    const expenses = data.filter(t => t.type === 'gasto').reduce((s,t) => s + t.monto, 0);
+    
+    document.getElementById('total-balance').textContent = `$ ${Math.round(income - expenses).toLocaleString('es-AR')}`;
+    document.getElementById('home-income').textContent = `$ ${Math.round(income).toLocaleString('es-AR')}`;
+    document.getElementById('home-expenses').textContent = `$ ${Math.round(expenses).toLocaleString('es-AR')}`;
+    
     const rate = income > 0 ? Math.round(((income - expenses) / income) * 100) : 0;
-    document.getElementById('savings-rate').textContent = `${rate}%`;
+    document.getElementById('savings-rate').textContent = `${rate}% ahorro`;
+    
+    const periodNames = { month: 'ESTE MES', year: 'ESTE AÑO', history: 'TODO EL HISTORIAL' };
+    document.getElementById('period-label').textContent = periodNames[currentPeriod];
+}
+
+function addFixedExpense() {
+    const cat = prompt('Categoría (ej: Alquiler, Internet):', 'Varios');
+    const det = prompt('Detalle:', 'Gasto mensual');
+    const monto = parseFloat(prompt('Monto sugerido:', '0'));
+    if (!cat) return;
+    
+    const newFixed = { id: Date.now(), categoria: cat, detalle: det, monto: monto };
+    currentData.fixedExpenses.push(newFixed);
+    localStorage.setItem('hogar_v1_fixed', JSON.stringify(currentData.fixedExpenses));
+    renderFixedExpenses();
+}
+
+function deleteFixed(id) {
+    if(confirm('¿Eliminar gasto fijo?')) {
+        currentData.fixedExpenses = currentData.fixedExpenses.filter(f => f.id !== id);
+        localStorage.setItem('hogar_v1_fixed', JSON.stringify(currentData.fixedExpenses));
+        renderFixedExpenses();
+    }
+}
+
+function payFixed(id) {
+    const f = currentData.fixedExpenses.find(x => x.id === id);
+    const monto = parseFloat(prompt(`Monto a pagar para ${f.categoria}:`, f.monto));
+    if (isNaN(monto)) return;
+    
+    const tx = {
+        id: Date.now(),
+        type: 'gasto',
+        monto: monto,
+        categoria: f.categoria,
+        detalle: f.detalle,
+        responsable: 'Casa',
+        fecha: new Date().toISOString().split('T')[0]
+    };
+    saveTransaction(tx);
+    showToast('¡Pago registrado!');
+}
+
+function renderFixedExpenses() {
+    const list = document.getElementById('fixed-expenses-list');
+    list.innerHTML = '';
+    
+    currentData.fixedExpenses.forEach(f => {
+        const div = document.createElement('div');
+        div.className = 'card';
+        div.style.padding = '0.8rem';
+        div.style.background = 'rgba(255,255,255,0.02)';
+        div.style.border = '1px solid rgba(255,255,255,0.05)';
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div onclick="payFixed(${f.id})" style="cursor:pointer; flex: 1;">
+                    <h4 style="font-size:0.8rem; color:var(--primary);">${f.categoria}</h4>
+                    <p style="font-size:0.6rem; opacity:0.6;">${f.detalle}</p>
+                    <div style="font-weight:700; font-size:0.9rem; margin-top:0.2rem;">$ ${f.monto.toLocaleString('es-AR')}</div>
+                </div>
+                <div style="display:flex; gap: 0.5rem;">
+                    <button onclick="deleteFixed(${f.id})" style="background:none; border:none; color:#ef4444; opacity:0.5; padding:0.5rem;"><i data-lucide="trash-2" style="width:16px;"></i></button>
+                </div>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+    lucide.createIcons();
 }
 
 function renderFixedExpenses() {

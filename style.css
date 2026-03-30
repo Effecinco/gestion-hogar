@@ -196,8 +196,11 @@ section.tab-content.active { display: block; animation: fadeIn 0.3s ease; }
     #app { padding: 1rem 0.8rem; padding-bottom: 5rem; }
 }
 
+.stats-mini-grid .card { padding: 0.8rem; border: 1px solid rgba(255,255,255,0.03); }
+.p-small { padding: 0.8rem !important; }
+
 @media print {
-    header, .header-actions, .table-filters, .btn, .modal-overlay, nav.bottom-nav { display: none !important; }
+    header, .header-actions, .table-filters, .btn, .modal-overlay, nav.bottom-nav, .period-selector-container { display: none !important; }
     .card { border: 1px solid #eee; box-shadow: none; color: black !important; }
     body { background: white; color: black; }
 }

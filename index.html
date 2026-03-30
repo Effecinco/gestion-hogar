@@ -31,31 +31,54 @@
         </header>
 
         <main>
+            <!-- SELECTOR DE PERIODO (Global) -->
+            <div class="period-selector-container">
+                <select id="select-period" class="filter-select" style="width: 100%; margin-bottom: 1rem; padding: 0.8rem; border-radius: 12px; background: #111;">
+                    <option value="month">📅 ESTE MES</option>
+                    <option value="year">🗓️ ESTE AÑO</option>
+                    <option value="history">🌎 TODO EL HISTORIAL</option>
+                </select>
+            </div>
+
             <!-- SECCIÓN RESUMEN -->
             <section id="tab-home" class="tab-content active">
                 <div class="summary-grid">
                     <div class="card balance-card">
                         <div class="card-label">BALANCE ACTUAL</div>
                         <div id="total-balance" class="card-value">$ 0</div>
-                        <div class="card-footer"><span class="trend-up" id="savings-rate">0%</span> ahorro vs ingresos</div>
+                        <div class="card-footer" style="display:flex; justify-content:space-between;">
+                            <span class="trend-up" id="savings-rate">0% ahorro</span>
+                            <span id="period-label" style="opacity:0.5; font-size: 0.6rem;">MARZO 2026</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-mini-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; margin-bottom: 1rem;">
+                    <div class="card p-small">
+                        <div class="card-label">INGRESOS</div>
+                        <div id="home-income" class="income-text" style="font-weight:700;">$ 0</div>
+                    </div>
+                    <div class="card p-small">
+                        <div class="card-label">EGRESOS</div>
+                        <div id="home-expenses" class="expense-text" style="font-weight:700;">$ 0</div>
                     </div>
                 </div>
 
                 <div class="content-grid" style="grid-template-columns: 1fr 1fr;">
                     <div class="card chart-container-fixed">
-                        <div class="card-header"><h2>EVOLUCIÓN MENSUAL</h2></div>
+                        <div class="card-header"><h2>EVOLUCIÓN</h2></div>
                         <div style="height: 250px; width: 100%;"><canvas id="balanceChart"></canvas></div>
                     </div>
                     <div class="card chart-container-fixed">
-                        <div class="card-header"><h2>DISTRIBUCIÓN</h2></div>
+                        <div class="card-header"><h2>CATEGORÍAS</h2></div>
                         <div style="height: 250px; width: 100%;"><canvas id="categoryChart"></canvas></div>
                     </div>
                 </div>
 
                 <div class="card budget-card">
                     <div class="budget-header">
-                        <h3>PRESUPUESTO DEL MES</h3>
-                        <span id="budget-info">Calculando...</span>
+                        <h3>LIMITE DE GASTOS</h3>
+                        <span id="budget-info">0%</span>
                     </div>
                     <div class="progress-bar-container"><div id="budget-progress" class="progress-bar"></div></div>
                 </div>
@@ -64,7 +87,10 @@
             <!-- SECCIÓN GASTOS FIJOS -->
             <section id="tab-fixed" class="tab-content">
                 <div class="card">
-                    <div class="card-header"><h2>GASTOS FIJOS MENSUALES</h2></div>
+                    <div class="card-header" style="flex-direction: row; justify-content: space-between;">
+                        <h2>GASTOS FIJOS</h2>
+                        <button class="btn btn-secondary" onclick="addFixedExpense()" style="color: var(--primary); background: none; border: 1px solid var(--primary); padding: 0.3rem 0.6rem; font-size: 0.7rem;">+ AGREGAR</button>
+                    </div>
                     <div id="fixed-expenses-list" style="display: flex; flex-direction: column; gap: 0.8rem;">
                         <!-- Dinámico -->
                     </div>
@@ -75,7 +101,7 @@
             <section id="tab-savings" class="tab-content">
                 <div class="card">
                     <div class="card-header">
-                        <h2>AHORROS ACUMULADOS</h2>
+                        <h2>AHORROS</h2>
                         <div class="currency-toggle">
                             <button class="currency-btn active" onclick="setCurrency('ARS')">ARS</button>
                             <button class="currency-btn" onclick="setCurrency('USD')">USD</button>
@@ -95,23 +121,23 @@
                 </div>
             </section>
 
-            <!-- SECCIÓN HISTORIAL (Antes era la tabla principal) -->
+            <!-- SECCIÓN HISTORIAL -->
             <section id="tab-history" class="tab-content">
                 <div class="card table-card" style="background: var(--card-bg);">
                     <div class="table-header">
                         <h2>HISTORIAL</h2>
-                        <div class="table-filters">
-                            <input type="text" id="table-search" placeholder="Buscar..." class="filter-select" style="width: 120px;">
-                            <select id="filter-type" class="filter-select">
+                        <div class="table-filters" style="gap: 0.3rem;">
+                            <input type="text" id="table-search" placeholder="Buscar..." class="filter-select" style="width: 80px;">
+                            <select id="filter-type" class="filter-select" style="font-size: 0.6rem;">
                                 <option value="all">Todo</option>
-                                <option value="gasto">Gastos</option>
-                                <option value="ingreso">Ingresos</option>
+                                <option value="gasto">Gasto</option>
+                                <option value="ingreso">Ingr.</option>
                             </select>
                         </div>
                     </div>
                     <div class="table-responsive">
                         <table>
-                            <thead><tr><th>FECHA</th><th>CAT.</th><th>DETALLE</th><th class="text-right">MONTO</th><th></th></tr></thead>
+                            <thead><tr><th>F.</th><th>CAT.</th><th class="text-right">MONTO</th><th></th></tr></thead>
                             <tbody id="transactions-body"></tbody>
                         </table>
                     </div>
