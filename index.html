@@ -18,7 +18,6 @@
 </head>
 <body>
     <div id="app">
-        <!-- HEADER -->
         <header>
             <div class="logo-container">
                 <div class="house-icon"><i data-lucide="home"></i></div>
@@ -32,7 +31,6 @@
         </header>
 
         <main>
-            <!-- TARJETAS DE RESUMEN -->
             <div class="summary-grid">
                 <div class="card balance-card">
                     <div class="card-label">BALANCE ACTUAL</div>
@@ -51,23 +49,14 @@
                 </div>
             </div>
 
-            <!-- ACCIONES + GRÁFICOS -->
             <div class="content-grid" style="grid-template-columns: 1fr 1fr;">
                 <div class="card chart-container-fixed">
-                    <div class="card-header">
-                        <h2>EVOLUCIÓN MENSUAL</h2>
-                    </div>
-                    <div style="height: 250px; width: 100%;">
-                        <canvas id="balanceChart"></canvas>
-                    </div>
+                    <div class="card-header"><h2>EVOLUCIÓN MENSUAL</h2></div>
+                    <div style="height: 250px; width: 100%;"><canvas id="balanceChart"></canvas></div>
                 </div>
                 <div class="card chart-container-fixed">
-                    <div class="card-header">
-                        <h2>DISTRIBUCIÓN DE GASTOS</h2>
-                    </div>
-                    <div style="height: 250px; width: 100%;">
-                        <canvas id="categoryChart"></canvas>
-                    </div>
+                    <div class="card-header"><h2>DISTRIBUCIÓN DE GASTOS</h2></div>
+                    <div style="height: 250px; width: 100%;"><canvas id="categoryChart"></canvas></div>
                 </div>
             </div>
 
@@ -81,7 +70,6 @@
                 </div>
             </div>
 
-            <!-- TABLA DE MOVIMIENTOS -->
             <div class="card table-card">
                 <div class="table-header">
                     <h2>MOVIMIENTOS</h2>
@@ -116,7 +104,6 @@
             </div>
         </main>
 
-        <!-- MODAL: NUEVO MOVIMIENTO -->
         <div id="modal-overlay" class="modal-overlay hidden">
             <div class="modal">
                 <div class="modal-header">
@@ -146,16 +133,15 @@
                     <div class="input-group">
                         <label>CATEGORÍA</label>
                         <select id="categoria">
-                                <option value="Supermercado">🛒 Supermercado</option>
-                                <option value="Servicios/Impuestos">⚡ Servicios/Impuestos</option>
-                                <option value="Alquiler/Expensas">🏠 Alquiler/Expensas</option>
-                                <option value="Ocio/Salidas">🍹 Ocio/Salidas</option>
-                                <option value="Salud">🏥 Salud</option>
-                                <option value="Sueldo/Extras">💵 Sueldo/Extras</option>
-                                <option value="Transporte">🚗 Transporte</option>
-                                <option value="Varios">📦 Varios</option>
-                            </select>
-                        </div>
+                            <option value="Supermercado">🛒 Supermercado</option>
+                            <option value="Servicios/Impuestos">⚡ Servicios/Impuestos</option>
+                            <option value="Alquiler/Expensas">🏠 Alquiler/Expensas</option>
+                            <option value="Ocio/Salidas">🍹 Ocio/Salidas</option>
+                            <option value="Salud">🏥 Salud</option>
+                            <option value="Sueldo/Extras">💵 Sueldo/Extras</option>
+                            <option value="Transporte">🚗 Transporte</option>
+                            <option value="Varios">📦 Varios</option>
+                        </select>
                     </div>
                     <div class="input-group">
                         <label>DETALLE</label>
@@ -165,12 +151,11 @@
                         <label>RESPONSABLE</label>
                         <input type="text" id="responsable" placeholder="Ej: Facu">
                     </div>
-                    <button type="submit" class="btn btn-primary" style="width:100%; margin-top: 0.5rem; padding: 1rem;">GUARDAR</button>
+                    <button type="submit" class="btn btn-primary" style="width:100%; padding: 1rem;">GUARDAR</button>
                 </form>
             </div>
         </div>
 
-        <!-- MODAL: CONFIGURAR NUBE -->
         <div id="sync-modal" class="modal-overlay hidden">
             <div class="modal">
                 <div class="modal-header">
@@ -178,9 +163,7 @@
                     <button id="close-sync-modal">&times;</button>
                 </div>
                 <div class="modal-body">
-                    <p style="font-size:0.8rem;color:#888;margin-bottom:1.5rem;">
-                        Pega la URL de tu Google Apps Script (termina en <code>/exec</code>).
-                    </p>
+                    <p style="font-size:0.8rem;color:#888;margin-bottom:1.5rem;">Copia la URL de tu Google Apps Script (/exec).</p>
                     <div class="input-group">
                         <label>URL DEL SCRIPT</label>
                         <input type="url" id="cloud-url" placeholder="https://script.google.com/macros/s/.../exec">
