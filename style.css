@@ -1,0 +1,117 @@
+:root {
+    --bg: #0a0a0c;
+    --card-bg: #14151a;
+    --border: rgba(255, 255, 255, 0.06);
+    --text: #ffffff;
+    --text-dim: #71717a;
+    --accent: #ff003c;
+    --income: #10b981;
+    --expense: #ef4444;
+    --primary: #6366f1;
+    --glass: rgba(255, 255, 255, 0.02);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+#app { padding: 2rem; max-width: 1400px; margin: 0 auto; min-height: 100vh; }
+
+header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3rem; }
+.logo-container { display: flex; align-items: center; gap: 1rem; }
+.house-icon { 
+    background: linear-gradient(135deg, var(--primary), #4f46e5); 
+    padding: 0.8rem; border-radius: 14px; display: flex; 
+    box-shadow: 0 8px 30px rgba(99, 102, 241, 0.3);
+}
+h1 { font-weight: 800; letter-spacing: -0.05em; font-size: 1.4rem; }
+.accent-text { color: var(--primary); }
+.header-actions { display: flex; align-items: center; gap: 1rem; }
+.date-display { font-family: 'JetBrains Mono'; font-size: 0.75rem; color: var(--text-dim); }
+
+.summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 1.5rem;
+    position: relative;
+}
+
+.card-label { font-size: 0.65rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.1em; }
+.card-value { font-size: 2rem; font-weight: 800; margin: 0.4rem 0; font-family: 'JetBrains Mono'; letter-spacing: -0.04em; }
+.income-text { color: var(--income); }
+.expense-text { color: var(--expense); }
+.card-footer { font-size: 0.7rem; color: var(--text-dim); }
+.trend-up { color: var(--income); font-weight: 700; }
+.card-icon { position: absolute; right: 1.5rem; bottom: 1.5rem; opacity: 0.05; width: 2.5rem; height: 2.5rem; }
+
+.content-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+.chart-container { min-height: 350px; }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+.card-header h2 { font-size: 0.85rem; font-weight: 700; color: var(--text-dim); text-transform: uppercase; }
+
+.btn {
+    padding: 0.7rem 1.2rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600;
+    cursor: pointer; border: none; display: flex; align-items: center; gap: 0.5rem; transition: 0.2s;
+}
+.btn-primary { background: var(--primary); color: white; }
+.btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.btn-secondary { background: var(--glass); color: var(--text); border: 1px solid var(--border); }
+.btn-action { background: var(--glass); width: 100%; justify-content: center; margin-bottom: 0.6rem; border: 1px solid var(--border); }
+.btn-action:hover { background: rgba(255,255,255,0.05); }
+
+.table-card { padding: 0; overflow: hidden; }
+.table-header { padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
+.search-box { 
+    background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 0.5rem 0.8rem;
+    display: flex; align-items: center; gap: 0.6rem;
+}
+.search-box input { background: transparent; border: none; color: white; font-size: 0.8rem; outline: none; width: 220px; }
+.filter-select { background: var(--bg); border: 1px solid var(--border); color: white; border-radius: 10px; padding: 0.5rem; font-size: 0.8rem; outline: none; }
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; padding: 1.2rem 1.5rem; font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; font-weight: 800; border-bottom: 1px solid var(--border); }
+td { padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border); font-size: 0.8rem; }
+.price-cell { font-family: 'JetBrains Mono'; font-weight: 700; font-size: 0.9rem; }
+.status-tag { padding: 4px 10px; border-radius: 8px; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; }
+.status-paid { background: rgba(16, 185, 129, 0.1); color: var(--income); }
+
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+    display: flex; align-items: center; justify-content: center; z-index: 1000;
+}
+.hidden { display: none !important; }
+.modal { background: #18191e; border: 1px solid var(--border); border-radius: 24px; width: 440px; padding: 2rem; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+.modal-header h3 { font-size: 1rem; font-weight: 800; }
+#close-modal, #close-sync-modal { background: transparent; border: none; color: var(--text-dim); font-size: 1.5rem; cursor: pointer; }
+
+.input-group { margin-bottom: 1.5rem; }
+.input-group label { display: block; font-size: 0.65rem; font-weight: 800; color: var(--text-dim); margin-bottom: 0.6rem; text-transform: uppercase; }
+.input-group input, .input-group select { 
+    width: 100%; background: var(--bg); border: 1px solid var(--border); 
+    border-radius: 12px; padding: 0.9rem; color: white; font-size: 0.9rem; outline: none;
+}
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+.toggle-group { display: flex; gap: 4px; background: var(--bg); padding: 4px; border-radius: 14px; border: 1px solid var(--border); }
+.toggle-group input { display: none; }
+.toggle-group label { flex: 1; text-align: center; padding: 0.7rem; border-radius: 10px; cursor: pointer; font-size: 0.7rem; font-weight: 800; transition: 0.2s; }
+.toggle-group input:checked + label { background: var(--primary); color: white; }
+
+@media (max-width: 1000px) {
+    .summary-grid, .content-grid { grid-template-columns: 1fr; }
+    #app { padding: 1rem; }
+}
+
+@media print {
+    header, .header-actions, .table-filters, .btn, .modal-overlay { display: none !important; }
+    .card { border: 1px solid #eee; box-shadow: none; color: black !important; }
+    body { background: white; color: black; }
+}

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión Hogar | Finanzas Personales</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gestión Hogar">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- HEADER -->
+        <header>
+            <div class="logo-container">
+                <div class="house-icon"><i data-lucide="home"></i></div>
+                <h1>GESTIÓN <span class="accent-text">HOGAR</span></h1>
+            </div>
+            <div class="header-actions">
+                <span id="current-date" class="date-display"></span>
+                <button id="sync-btn" class="btn btn-secondary"><i data-lucide="cloud"></i> NUBE</button>
+                <button id="add-transaction-btn" class="btn btn-primary"><i data-lucide="plus"></i> NUEVO MOVIMIENTO</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- TARJETAS DE RESUMEN -->
+            <div class="summary-grid">
+                <div class="card balance-card">
+                    <div class="card-label">BALANCE ACTUAL</div>
+                    <div id="total-balance" class="card-value">$ 0</div>
+                    <div class="card-footer"><span class="trend-up" id="savings-rate">0%</span> ahorro vs ingresos</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">INGRESOS MES</div>
+                    <div id="total-income" class="card-value income-text">$ 0</div>
+                    <i data-lucide="trending-up" class="card-icon"></i>
+                </div>
+                <div class="card">
+                    <div class="card-label">GASTOS MES</div>
+                    <div id="total-expenses" class="card-value expense-text">$ 0</div>
+                    <i data-lucide="trending-down" class="card-icon"></i>
+                </div>
+            </div>
+
+            <!-- ACCIONES + GRÁFICO DONA -->
+            <div class="content-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>ACCIONES</h2>
+                    </div>
+                    <button class="btn btn-action" onclick="exportToCSV()"><i data-lucide="download"></i> EXPORTAR A CSV (EXCEL)</button>
+                    <button class="btn btn-action" onclick="window.print()"><i data-lucide="printer"></i> IMPRIMIR REPORTE</button>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h2>GASTOS POR CATEGORÍA</h2>
+                    </div>
+                    <div style="height: 200px; position: relative;">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABLA DE MOVIMIENTOS -->
+            <div class="card table-card">
+                <div class="table-header">
+                    <h2>MOVIMIENTOS</h2>
+                    <div class="table-filters">
+                        <div class="search-box">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="table-search" placeholder="Buscar...">
+                        </div>
+                        <select id="filter-type" class="filter-select">
+                            <option value="all">Todos</option>
+                            <option value="ingreso">Ingresos</option>
+                            <option value="gasto">Gastos</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>FECHA</th>
+                                <th>CATEGORÍA</th>
+                                <th>DETALLE</th>
+                                <th>RESPONSABLE</th>
+                                <th class="text-right">MONTO</th>
+                                <th>TIPO</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactions-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+
+        <!-- MODAL: NUEVO MOVIMIENTO -->
+        <div id="modal-overlay" class="modal-overlay hidden">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>CARGAR MOVIMIENTO</h3>
+                    <button id="close-modal">&times;</button>
+                </div>
+                <form id="transaction-form" class="modal-body">
+                    <div class="input-group">
+                        <label>TIPO</label>
+                        <div class="toggle-group">
+                            <input type="radio" name="type" value="gasto" id="type-gasto" checked>
+                            <label for="type-gasto">GASTO</label>
+                            <input type="radio" name="type" value="ingreso" id="type-ingreso">
+                            <label for="type-ingreso">INGRESO</label>
+                        </div>
+                    </div>
+                    <div class="input-row">
+                        <div class="input-group">
+                            <label>MONTO ($)</label>
+                            <input type="number" id="monto" required placeholder="0.00">
+                        </div>
+                        <div class="input-group">
+                            <label>CATEGORÍA</label>
+                            <select id="categoria">
+                                <option value="Supermercado">🛒 Supermercado</option>
+                                <option value="Servicios/Impuestos">⚡ Servicios/Impuestos</option>
+                                <option value="Alquiler/Expensas">🏠 Alquiler/Expensas</option>
+                                <option value="Ocio/Salidas">🍹 Ocio/Salidas</option>
+                                <option value="Salud">🏥 Salud</option>
+                                <option value="Sueldo/Extras">💵 Sueldo/Extras</option>
+                                <option value="Transporte">🚗 Transporte</option>
+                                <option value="Varios">📦 Varios</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>DETALLE</label>
+                        <input type="text" id="detalle" required placeholder="Ej: Pago de Luz">
+                    </div>
+                    <div class="input-group">
+                        <label>RESPONSABLE</label>
+                        <input type="text" id="responsable" placeholder="Ej: Facu">
+                    </div>
+                    <button type="submit" class="btn btn-primary" style="width:100%; margin-top: 0.5rem; padding: 1rem;">GUARDAR</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- MODAL: CONFIGURAR NUBE -->
+        <div id="sync-modal" class="modal-overlay hidden">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>CONFIGURAR NUBE</h3>
+                    <button id="close-sync-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p style="font-size:0.8rem;color:#888;margin-bottom:1.5rem;">
+                        Pega la URL de tu Google Apps Script (termina en <code>/exec</code>).
+                    </p>
+                    <div class="input-group">
+                        <label>URL DEL SCRIPT</label>
+                        <input type="url" id="cloud-url" placeholder="https://script.google.com/macros/s/.../exec">
+                    </div>
+                    <button id="save-sync" class="btn btn-primary" style="width:100%">GUARDAR Y SINCRONIZAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="main.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+                .then(() => console.log('PWA lista.'))
+                .catch(e => console.log('SW error:', e));
+        }
+    </script>
+</body>
+</html>
